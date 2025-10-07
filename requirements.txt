@@ -1,0 +1,8 @@
+Flask
+reportlab
+gunicorn
+Werkzeug
+flask-wtf
+Pillow
+email-validator
+flask-mail

@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin Dashboard — {{ church_name }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial, sans-serif;background:#f4f6f8;margin:0;padding:0}
+    .header{background:#007bff;color:#fff;padding:16px;text-align:center;position:relative}
+    .logout{position:absolute;right:20px;top:16px;color:#fff;text-decoration:none;font-weight:700}
+    .container{max-width:800px;margin:30px auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
+    h2{margin-top:0;text-align:center}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid #ddd}
+    th{background:#f4f4f4}
+    a.btn, button.btn{padding:6px 12px;background:#28a745;color:#fff;text-decoration:none;border:none;border-radius:6px;font-weight:700;cursor:pointer}
+    button.remove-btn{background:#dc3545;color:#fff}
+    button.remove-btn:hover{background:#c82333}
+    .no-data{text-align:center;color:#666;margin-top:20px}
+  </style>
+</head>
+<body>
+  <div class="header">
+    Admin Dashboard — {{ church_name }}
+    <a class="logout" href="{{ url_for('admin_logout') }}">Logout</a>
+  </div>
+
+  <div class="container">
+    <h2>Submitted Membership Forms</h2>
+
+    {% if pdf_files %}
+      <table>
+        <tr>
+          <th>Filename</th>
+          <th>Download</th>
+          <th>Remove</th>
+        </tr>
+        {% for pdf in pdf_files %}
+        <tr>
+          <td>{{ pdf }}</td>
+          <td>
+            <a class="btn" href="{{ url_for('admin_download', filename=pdf) }}">Download</a>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin_remove', filename=pdf) }}" onsubmit="return confirm('Are you sure you want to remove this form?');">
+              <button class="btn remove-btn" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p class="no-data">No submissions yet.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

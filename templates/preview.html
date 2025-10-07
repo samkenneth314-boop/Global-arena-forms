@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Preview — {{ church_name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+    .container { max-width: 800px; margin: 30px auto; background: #fff; padding: 25px 35px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+    .header { text-align: center; }
+    .logo { width: 110px; display: block; margin: 0 auto 10px; }
+    h2 { margin: 5px 0; }
+    h3 { color: #555; margin-bottom: 20px; }
+    .info { margin-top: 15px; }
+    .info p { margin: 6px 0; font-size: 15px; }
+    .info strong { color: #222; }
+    .photo { text-align: center; margin-top: 15px; }
+    .photo img { width: 200px; height: auto; border-radius: 8px; border: 2px solid #ccc; }
+    hr { margin: 20px 0; border: 1px solid #ddd; }
+    .btn-back { background: #1b1b19; color: white; padding: 12px; border-radius:6px; border:none; cursor:pointer; width:48%; font-weight:700; }
+    .btn-submit { background: #007bff; color: white; padding: 12px; border-radius:6px; border:none; cursor:pointer; width:48%; font-weight:700; }
+    .actions { display:flex; gap:10px; justify-content:space-between; margin-top:12px; }
+    input[type="hidden"]{display:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img class="logo" src="{{ url_for('static', filename='church_logo.png') }}" alt="Church Logo" onerror="this.style.display='none'">
+      <h2>{{ church_name }}</h2>
+      <h3>KASOA – OFAAKOR BRANCH</h3>
+      <p>{{ church_address }} • {{ church_website }} • {{ church_phone }}</p>
+      <h3>Membership Form Preview</h3>
+    </div>
+
+    <div class="photo">
+      {% if temp_photo %}
+        <img src="{{ url_for('temp_images', filename=temp_photo) }}" alt="Passport Photo">
+      {% else %}
+        <p style="color:#777;">No photo uploaded</p>
+      {% endif %}
+    </div>
+
+    <div class="info">
+      <p><strong>First Name:</strong> {{ data.first_name }}</p>
+      <p><strong>Last Name:</strong> {{ data.last_name }}</p>
+      <p><strong>Gender:</strong> {{ data.gender }}</p>
+      <p><strong>Marital Status:</strong> {{ data.marital_status }}</p>
+      <p><strong>Date of Birth:</strong> {{ data.dob }}</p>
+      <p><strong>Age:</strong> {{ data.age }}</p>
+      <p><strong>Residence:</strong> {{ data.residence }}</p>
+      <p><strong>Landmark:</strong> {{ data.landmark }}</p>
+      <p><strong>Home Town:</strong> {{ data.home_town }}</p>
+      <p><strong>Region:</strong> {{ data.region }}</p>
+      <p><strong>Contact:</strong> {{ data.phone }}</p>
+      <p><strong>Occupation:</strong> {{ data.occupation }}</p>
+      <p><strong>Mother’s Name:</strong> {{ data.mother }}</p>
+      <p><strong>Father’s Name:</strong> {{ data.father }}</p>
+      <p><strong>Date for Joining the Church:</strong> {{ data.join_date }}</p>
+    </div>
+
+    <hr>
+
+    <div class="actions">
+      <form method="post" action="{{ url_for('edit') }}">
+        {% for k,v in data.items() %}
+          <input type="hidden" name="{{ k }}" value="{{ v }}">
+        {% endfor %}
+        <input type="hidden" name="temp_photo" value="{{ temp_photo }}">
+        <button type="submit" class="btn-back">← Edit</button>
+      </form>
+
+      <form method="post" action="{{ url_for('submit') }}">
+        {% for k,v in data.items() %}
+          <input type="hidden" name="{{ k }}" value="{{ v }}">
+        {% endfor %}
+        <input type="hidden" name="temp_photo" value="{{ temp_photo }}">
+        <button type="submit" class="btn-submit">Submit & Generate PDF</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

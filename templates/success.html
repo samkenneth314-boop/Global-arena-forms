@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Success — {{ church_name }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial, sans-serif;background:#f4f6f8}
+    .wrap{max-width:520px;margin:60px auto;text-align:center}
+    .circle{width:130px;height:130px;border-radius:50%;background:#28a745;display:inline-block;position:relative;transform:scale(0);animation:pop 500ms cubic-bezier(.2,.8,.2,1) forwards}
+    .check{position:absolute;left:33px;top:28px;width:64px;height:64px;}
+    @keyframes pop { 0%{transform:scale(0)} 70%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    h2{margin-top:18px;color:#333}
+    p{color:#555}
+    .dl-btn{display:inline-block;margin-top:18px;padding:10px 18px;background:#007bff;color:#fff;border-radius:6px;text-decoration:none;font-weight:700}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="circle" id="circle">
+      <svg class="check" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+        <path fill="none" stroke="#fff" stroke-width="5" d="M14 27 l8 8 l16 -16" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <h2>Submission Successful</h2>
+    <p>Your form has been saved. You can download your PDF below for printing later.</p>
+
+    <a id="downloadLink" class="dl-btn" href="{{ url_for('download', filename=pdf_filename) }}">Download PDF</a>
+  </div>
+</body>
+</html>

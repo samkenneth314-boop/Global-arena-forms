@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ church_name }} — Membership Form</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+    .container { max-width: 750px; margin: 30px auto; background: #fff; padding: 20px 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+    .header { text-align: center; }
+    .logo { width: 110px; display: block; margin: 0 auto 10px; }
+    h2 { margin: 5px 0; }
+    h3 { color: #555; margin-bottom: 20px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select, textarea { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 6px; box-sizing: border-box; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 45%; }
+    .btn { margin-top: 15px; background: #007bff; color: #fff; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .btn:hover { background: #0056b3; }
+    hr { margin: 20px 0; border: 1px solid #ddd; }
+    .official { margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ddd; }
+  </style>
+  <script>
+    // Auto-calculate Age (fills age field but user may overwrite it)
+    function calculateAge() {
+      const dobElem = document.querySelector('input[name="dob"]');
+      const ageElem = document.querySelector('input[name="age"]');
+      const dob = dobElem ? dobElem.value : '';
+      if (!dob) return;
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+      if (!isNaN(age)) ageElem.value = age;
+    }
+
+    // Ghana Regions list (autocomplete)
+    const regions = [
+      "Ahafo Region","Ashanti Region","Bono Region","Bono East Region","Central Region",
+      "Eastern Region","Greater Accra Region","North East Region","Northern Region",
+      "Oti Region","Savannah Region","Upper East Region","Upper West Region",
+      "Volta Region","Western Region","Western North Region"
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const regionInput = document.querySelector('input[name="region"]');
+      const dataList = document.createElement('datalist');
+      dataList.id = "regionList";
+      regions.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r;
+        dataList.appendChild(opt);
+      });
+      document.body.appendChild(dataList);
+      if (regionInput) regionInput.setAttribute('list', 'regionList');
+
+      // simple form-required client-side check before submit
+      const form = document.querySelector('form');
+      form.addEventListener('submit', function(e){
+        const requiredInputs = [
+          'first_name','last_name','gender','marital_status','dob','age',
+          'residence','home_town','region','phone'
+        ];
+        for (let name of requiredInputs) {
+          const el = form.querySelector(`[name="${name}"]`);
+          if (!el) continue;
+          if (String(el.value || '').trim() === '') {
+            e.preventDefault();
+            alert('Please fill all required fields before submitting.');
+            el.focus();
+            return false;
+          }
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img class="logo" src="{{ url_for('static', filename='church_logo.png') }}" alt="Church Logo" onerror="this.style.display='none'">
+      <h2>{{ church_name }}</h2>
+      <h3>KASOA – OFAAKOR BRANCH</h3>
+      <p>{{ church_address }} • {{ church_website }} • {{ church_phone }}</p>
+      <h3>MEMBERSHIP FORM</h3>
+    </div>
+
+    <form action="{{ url_for('preview') }}" method="post" enctype="multipart/form-data">
+      <div class="row">
+        <div class="col">
+          <label>First Name</label>
+          <input name="first_name" value="{{ pre.first_name }}" required>
+        </div>
+        <div class="col">
+          <label>Last Name</label>
+          <input name="last_name" value="{{ pre.last_name }}" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Gender</label>
+          <select name="gender" required>
+            <option value="">Select</option>
+            <option {% if pre.gender=='Male' %}selected{% endif %}>Male</option>
+            <option {% if pre.gender=='Female' %}selected{% endif %}>Female</option>
+            <option {% if pre.gender=='Other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Marital Status</label>
+          <select name="marital_status" required>
+            <option value="">Select</option>
+            <option {% if pre.marital_status=='Single' %}selected{% endif %}>Single</option>
+            <option {% if pre.marital_status=='Married' %}selected{% endif %}>Married</option>
+            <option {% if pre.marital_status=='Divorced' %}selected{% endif %}>Divorced</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Date of Birth</label>
+          <input type="date" name="dob" value="{{ pre.dob }}" onchange="calculateAge()" required>
+        </div>
+        <div class="col">
+          <label>Age</label>
+          <!-- made editable so user can manually enter if needed -->
+          <input type="number" name="age" value="{{ pre.age }}" placeholder="Enter or auto-calculated" required>
+        </div>
+      </div>
+
+      <label>Residence</label>
+      <input name="residence" value="{{ pre.residence }}" required>
+
+      <label>Landmark</label>
+      <input name="landmark" value="{{ pre.landmark }}">
+
+      <label>Home Town</label>
+      <input name="home_town" value="{{ pre.home_town }}" required>
+
+      <label>Region</label>
+      <input name="region" value="{{ pre.region }}" placeholder="Select or type..." required>
+
+      <label>Contact</label>
+      <input name="phone" value="{{ pre.phone }}" required>
+
+      <label>Occupation</label>
+      <input name="occupation" value="{{ pre.occupation }}">
+
+      <label>Mother’s Name</label>
+      <input name="mother" value="{{ pre.mother }}">
+
+      <label>Father’s Name</label>
+      <input name="father" value="{{ pre.father }}">
+
+      <label>Date for Joining the Church</label>
+      <input type="date" name="join_date" value="{{ pre.join_date }}">
+
+      <label>Upload Passport Photo</label>
+      <!-- name must match backend (photo) -->
+      <input type="file" name="photo" accept="image/*">
+      {% if pre.temp_photo %}
+      <div style="margin-top:10px">
+        <p style="font-size:13px;color:#555">Using previous photo (you may upload a new one):</p>
+        <img src="{{ url_for('temp_images', filename=pre.temp_photo) }}" style="width:110px;border-radius:6px">
+        <input type="hidden" name="temp_photo" value="{{ pre.temp_photo }}">
+      </div>
+      {% endif %}
+
+      <hr>
+
+      <div class="official">
+        <h4>FOR OFFICIAL USE</h4>
+        <label>Name</label>
+        <input name="official_name">
+        <label>Position</label>
+        <input name="official_position">
+        <label>Date</label>
+        <input type="date" name="official_date">
+      </div>
+
+          <button class="btn" type="submit">Preview Before Submit</button>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.querySelector("form");
+    const passportInput = document.querySelector("input[name='passport']");
+
+    form.addEventListener("submit", function(e) {
+        if (!passportInput.value) {
+            e.preventDefault(); // Stop form submission
+            alert("Please upload your passport photo before submitting the form.");
+            passportInput.focus();
+        }
+    });
+});
+</script>
+
+</body>
+</html>
+
