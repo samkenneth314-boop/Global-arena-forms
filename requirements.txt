@@ -6,3 +6,4 @@ flask-wtf
 Pillow
 email-validator
 flask-mail
+python-docx
