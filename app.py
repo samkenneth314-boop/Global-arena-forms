@@ -1,150 +1,308 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+# app.py
+import os, uuid, time, datetime
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash, send_file
 from werkzeug.utils import secure_filename
-from docx import Document
-from docx.shared import Inches
-import os
-from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.lib import colors
 
-app = Flask(__name__)
-app.secret_key = "secret-key"
+# ----------------- CONFIG -----------------
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
+UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
+TEMP_DIR = os.path.join(UPLOAD_DIR, 'temp')
+PDF_DIR = os.path.join(UPLOAD_DIR, 'pdfs')
 
-# Church Info
-church_name = "Global Arena of Liberty Ministry"
-church_address = "Kasoa – Ofaakor Branch"
-church_phone = "+233 54 123 4567"
-church_website = "www.globalarena.org"
+os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(PDF_DIR, exist_ok=True)
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
-# Folders
-UPLOAD_FOLDER = "uploads"
-TEMP_FOLDER = "temp_images"
-DOCS_FOLDER = "member_docs"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(TEMP_FOLDER, exist_ok=True)
-os.makedirs(DOCS_FOLDER, exist_ok=True)
+app = Flask(__name__, static_folder=STATIC_DIR, template_folder=TEMPLATES_DIR)
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB
+app.secret_key = 'supersecretkey123'
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+# ---------- Church details ----------
+CHURCH_NAME = "Global Arena of Liberty Ministry"
+CHURCH_BRANCH = "KASOA – OFAAKOR BRANCH"
+CHURCH_ADDRESS = "P.O. Box 119, Bogoso, Ghana"
+CHURCH_WEBSITE = "globalarenaoflibertyministry.com"
+CHURCH_PHONE = "+233 548 534 024"
 
+# ---------- Admin credentials ----------
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "liberty2025"
 
-@app.route('/')
+# ---------- Helper Functions ----------
+def save_temp_photo(file_storage):
+    if not file_storage or file_storage.filename == "":
+        return None
+    filename = secure_filename(file_storage.filename)
+    ext = os.path.splitext(filename)[1].lower()
+    token = uuid.uuid4().hex
+    saved_name = f"{token}{ext}"
+    path = os.path.join(TEMP_DIR, saved_name)
+    file_storage.save(path)
+    return saved_name
+
+def create_pdf(data: dict, temp_photo_filename: str) -> str:
+    safe_name = secure_filename(f"{data.get('first_name','')} {data.get('last_name','')}".strip()) or "member"
+    timestamp = time.strftime("%Y%m%d%H%M%S")
+    pdf_filename = f"{safe_name.replace(' ', '_')}_{timestamp}.pdf"
+    pdf_path = os.path.join(PDF_DIR, pdf_filename)
+
+    doc = SimpleDocTemplate(pdf_path, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    story = []
+    styles = getSampleStyleSheet()
+    normal = styles['Normal']
+    heading = styles['Heading1']
+
+    header_table_data = []
+    logo_path = os.path.join(STATIC_DIR, 'church_logo.png')
+    if os.path.exists(logo_path):
+        logo = RLImage(logo_path, width=1.5*inch, height=1.5*inch)
+        logo.hAlign = 'CENTER'
+    else:
+        logo = ""
+    header_text = f"""
+    <b>{CHURCH_NAME}</b><br/>
+    {CHURCH_BRANCH}<br/>
+    {CHURCH_ADDRESS}<br/>
+    {CHURCH_WEBSITE} • {CHURCH_PHONE}
+    """
+    header_table_data.append([logo, Paragraph(header_text, normal)])
+    header_table = Table(header_table_data, colWidths=[1.8*inch, 4.5*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (0,0), (0,0), 'CENTER'),
+        ('LEFTPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10)
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("<b><font size=14>Membership Form Submission</font></b>", heading))
+    story.append(Spacer(1, 12))
+
+    if temp_photo_filename:
+        photo_path = os.path.join(TEMP_DIR, temp_photo_filename)
+        if os.path.exists(photo_path):
+            try:
+                p = RLImage(photo_path, width=2*inch, height=2*inch)
+                p.hAlign = 'CENTER'
+                story.append(p)
+                story.append(Spacer(1, 12))
+            except Exception:
+                pass
+
+    # ---------- Member Info ----------
+    fields = [
+        ('First Name', data.get('first_name','')),
+        ('Last Name', data.get('last_name','')),
+        ('Gender', data.get('gender','')),
+        ('Marital Status', data.get('marital_status','')),
+        ('Date of Birth', data.get('dob','')),
+        ('Age', data.get('age','')),
+        ('Email', data.get('email','')),
+        ('Phone', data.get('phone','')),
+        ('Address', data.get('address','')),
+        ('Residence', data.get('residence','')),
+        ('Landmark', data.get('landmark','')),
+        ('Home Town', data.get('home_town','')),
+        ('Region', data.get('region','')),
+        ('Occupation', data.get('occupation','')),
+        ("Mother's Name", data.get('mother','')),
+        ("Father's Name", data.get('father','')),
+        ('Date Joining the Church', data.get('join_date','')),
+        # --------- OFFICIAL USE FIELDS (ADDED) ----------
+        ("Official Name", data.get('official_name','')),
+        ("Official Position", data.get('official_position','')),
+        ("Official Date", data.get('official_date','')),
+    ]
+
+    for label, value in fields:
+        story.append(Paragraph(f"<b>{label}:</b> {value}", normal))
+        story.append(Spacer(1, 6))
+
+    doc.build(story)
+    return pdf_filename
+
+# ---------- Form Routes ----------
+@app.route('/', methods=['GET'])
 def form():
-    return render_template(
-        "form.html",
-        church_name=church_name,
-        church_address=church_address,
-        church_phone=church_phone,
-        church_website=church_website,
-        pre={}
-    )
-
-# ✅ Added this safe line (fixes your success.html redirect)
-app.add_url_rule('/', 'index', form)
-
+    # ADDED official fields to pre so edit retains them
+    pre = {k: request.args.get(k, '') for k in (
+        'first_name','last_name','gender','dob','age','email','phone','address','born_again',
+        'marital_status','residence','landmark','home_town','region','occupation',
+        'mother','father','join_date','temp_photo',
+        'official_name','official_position','official_date')}
+    return render_template('form.html', pre=pre,
+                           church_name=CHURCH_NAME, church_address=CHURCH_ADDRESS,
+                           church_website=CHURCH_WEBSITE, church_phone=CHURCH_PHONE)
 
 @app.route('/preview', methods=['POST'])
 def preview():
-    form_data = request.form.to_dict()
-    photo = request.files.get('photo')
     temp_photo = None
+    existing_temp = request.form.get('temp_photo', '')
+    file_photo = request.files.get('photo')
 
-    if photo and photo.filename != "":
-        filename = secure_filename(photo.filename)
-        temp_photo = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
-        photo.save(os.path.join(TEMP_FOLDER, temp_photo))
+    if file_photo and file_photo.filename:
+        temp_photo = save_temp_photo(file_photo)
+    else:
+        temp_photo = existing_temp if existing_temp else None
 
-    form_data["temp_photo"] = temp_photo
-    return render_template(
-        "preview.html",
-        pre=form_data,
-        church_name=church_name,
-        church_address=church_address,
-        church_phone=church_phone,
-        church_website=church_website
-    )
+    # Get form data (ADDED official_* fields)
+    data = {k: request.form.get(k,'').strip() for k in (
+        'first_name','last_name','gender','dob','age','email','phone','address','born_again',
+        'marital_status','residence','landmark','home_town','region','occupation',
+        'mother','father','join_date',
+        'official_name','official_position','official_date')}
 
+    # Auto-calculate age if DOB is filled and age not provided
+    if data.get('dob') and not data.get('age'):
+        try:
+            dob = datetime.datetime.strptime(data['dob'], "%Y-%m-%d").date()
+            today = datetime.date.today()
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            data['age'] = str(age)
+        except Exception:
+            data['age'] = ''
+
+    return render_template('preview.html', data=data, temp_photo=temp_photo,
+                           church_name=CHURCH_NAME, church_address=CHURCH_ADDRESS,
+                           church_website=CHURCH_WEBSITE, church_phone=CHURCH_PHONE)
+
+@app.route('/edit', methods=['POST'])
+def edit():
+    # ADDED official_* fields so they persist during edit redirect
+    data = {k: request.form.get(k,'') for k in (
+        'first_name','last_name','gender','dob','age','email','phone','address','born_again',
+        'marital_status','residence','landmark','home_town','region','occupation',
+        'mother','father','join_date',
+        'official_name','official_position','official_date')}
+    data['temp_photo'] = request.form.get('temp_photo','')
+    return redirect(url_for('form', **data))
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    data = request.form.to_dict()
-    photo = request.files.get('photo')
-    temp_photo = data.get('temp_photo')
+    temp_photo = request.form.get('temp_photo', None)
+    # ADDED official_* fields so PDF generation includes them
+    data = {k: request.form.get(k,'').strip() for k in (
+        'first_name','last_name','gender','dob','age','email','phone','address','born_again',
+        'marital_status','residence','landmark','home_town','region','occupation',
+        'mother','father','join_date',
+        'official_name','official_position','official_date')}
 
-    # Use either new uploaded photo or previous temp
-    if photo and photo.filename != "":
-        filename = secure_filename(photo.filename)
-        photo_path = os.path.join(UPLOAD_FOLDER, filename)
-        photo.save(photo_path)
-    elif temp_photo:
-        photo_path = os.path.join(TEMP_FOLDER, temp_photo)
-    else:
-        photo_path = None
+    pdf_filename = create_pdf(data, temp_photo)
+    if temp_photo:
+        try:
+            os.remove(os.path.join(TEMP_DIR, temp_photo))
+        except Exception:
+            pass
 
-    first_name = data.get("first_name", "")
-    last_name = data.get("last_name", "")
-    full_name = f"{first_name}_{last_name}".strip()
-    doc_filename = f"{full_name}.docx"
-    doc_path = os.path.join(DOCS_FOLDER, doc_filename)
+    return render_template('success.html', pdf_filename=pdf_filename,
+                           church_name=CHURCH_NAME, church_address=CHURCH_ADDRESS,
+                           church_website=CHURCH_WEBSITE, church_phone=CHURCH_PHONE)
 
-    document = Document()
-    document.add_heading(church_name, 0)
-    document.add_paragraph(f"{church_address} | {church_phone} | {church_website}")
-    document.add_heading("Membership Form", level=1)
-    document.add_paragraph("")
-
-    # Photo
-    if photo_path and os.path.exists(photo_path):
-        document.add_picture(photo_path, width=Inches(1.5))
-
-    # Member info
-    for key, value in data.items():
-        if key not in ["photo", "temp_photo", "official_name", "official_position", "official_date"]:
-            document.add_paragraph(f"{key.replace('_', ' ').title()}: {value}")
-
-    # Official Use Section
-    document.add_paragraph("\n--- FOR OFFICIAL USE ---")
-    document.add_paragraph(f"Name: {data.get('official_name', '')}")
-    document.add_paragraph(f"Position: {data.get('official_position', '')}")
-    document.add_paragraph(f"Date: {data.get('official_date', '')}")
-
-    document.save(doc_path)
-
-    # Create a simple PDF-like confirmation file
-    pdf_filename = f"{full_name}.pdf"
-    pdf_path = os.path.join(DOCS_FOLDER, pdf_filename)
-    os.system(f'copy "{doc_path}" "{pdf_path}" >nul')
-
-    return render_template("success.html", pdf_filename=pdf_filename, church_name=church_name)
-
-
-@app.route('/download/<filename>')
+@app.route('/download/<path:filename>')
 def download(filename):
-    return send_from_directory(DOCS_FOLDER, filename, as_attachment=True)
+    return send_from_directory(PDF_DIR, filename, as_attachment=True)
 
-
-@app.route('/temp_images/<filename>')
+@app.route('/uploads/temp/<path:filename>')
 def temp_images(filename):
-    return send_from_directory(TEMP_FOLDER, filename)
+    return send_from_directory(TEMP_DIR, filename)
 
-
-# Admin Dashboard Routes (kept unchanged)
-@app.route('/admin')
+# ---------- Admin Routes ----------
+@app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
-    return render_template('admin-login.html')
+    if request.method == 'POST':
+        username = request.form.get('username','')
+        password = request.form.get('password','')
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid username or password', 'danger')
+            return redirect(url_for('admin_login'))
+    return render_template('admin_login.html')
 
+@app.route('/admin/remove/<path:filename>', methods=['POST'])
+def admin_remove(filename):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    pdf_path = os.path.join(PDF_DIR, filename)
+    try:
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            flash(f"'{filename}' removed successfully.", "success")
+        else:
+            flash(f"File '{filename}' not found.", "warning")
+    except Exception as e:
+        flash(f"Error removing {filename}: {e}", "danger")
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/remove-selected', methods=['POST'])
+def admin_remove_selected():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    selected_files = request.form.getlist('selected_files')
+    removed = []
+    not_found = []
+
+    for filename in selected_files:
+        pdf_path = os.path.join(PDF_DIR, filename)
+        if os.path.exists(pdf_path):
+            try:
+                os.remove(pdf_path)
+                removed.append(filename)
+            except Exception:
+                not_found.append(filename)
+        else:
+            not_found.append(filename)
+
+    if removed:
+        flash(f"Removed files: {', '.join(removed)}", "success")
+    if not_found:
+        flash(f"Files not found or error: {', '.join(not_found)}", "warning")
+
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    files = os.listdir(DOCS_FOLDER)
-    return render_template('admin-board.html', files=files)
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    pdf_files = sorted(os.listdir(PDF_DIR), reverse=True)
+    return render_template('admin_dashboard.html', pdf_files=pdf_files)
 
+@app.route('/admin/download/<path:filename>')
+def admin_download(filename):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    return send_from_directory(PDF_DIR, filename, as_attachment=True)
 
-@app.route('/admin/remove/<filename>')
-def admin_remove(filename):
-    path = os.path.join(DOCS_FOLDER, filename)
-    if os.path.exists(path):
-        os.remove(path)
-        flash(f"{filename} removed successfully.")
-    return redirect(url_for('admin_dashboard'))
+@app.route('/admin/download_all')
+def admin_download_all():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
 
+    import zipfile, io
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w') as zf:
+        for filename in os.listdir(PDF_DIR):
+            zf.write(os.path.join(PDF_DIR, filename), arcname=filename)
+    memory_file.seek(0)
+    return send_file(memory_file, download_name="all_submissions.zip", as_attachment=True)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('admin_login'))
+
+# ---------- Run ----------
+if __name__ == '__main__':
+    app.run(host='0.0.0.0',debug=True)
