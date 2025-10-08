@@ -4,19 +4,31 @@
   <meta charset="utf-8">
   <title>Admin Dashboard — {{ church_name }}</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  
   <style>
     body{font-family:Arial, sans-serif;background:#f4f6f8;margin:0;padding:0}
     .header{background:#007bff;color:#fff;padding:16px;text-align:center;position:relative}
     .logout{position:absolute;right:20px;top:16px;color:#fff;text-decoration:none;font-weight:700}
-    .container{max-width:800px;margin:30px auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
+    .container{max-width:900px;margin:30px auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
     h2{margin-top:0;text-align:center}
     table{width:100%;border-collapse:collapse;margin-top:16px}
     th,td{padding:10px;text-align:left;border-bottom:1px solid #ddd}
     th{background:#f4f4f4}
-    a.btn, button.btn{padding:6px 12px;background:#28a745;color:#fff;text-decoration:none;border:none;border-radius:6px;font-weight:700;cursor:pointer}
+    a.btn, button.btn{padding:6px 12px;background:#28a745;color:#fff;text-decoration:none;border:none;border-radius:6px;font-weight:700;cursor:pointer;margin-right:4px}
     button.remove-btn{background:#dc3545;color:#fff}
     button.remove-btn:hover{background:#c82333}
     .no-data{text-align:center;color:#666;margin-top:20px}
+    .stats{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+    .stats div{background:#e9ecef;padding:10px;border-radius:6px;font-weight:700}
+    .recent-row{background:#fff3cd} /* Highlight recently added */
+    @media screen and (max-width: 768px) {
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      .container { padding: 10px; }
+      .stats { flex-direction: column; gap: 10px; }
+    }
   </style>
 </head>
 <body>
@@ -27,31 +39,108 @@
 
   <div class="container">
     <h2>Submitted Membership Forms</h2>
+    
+    <!-- Dashboard Stats -->
+    <div class="stats">
+      <div>Total Submissions: {{ pdf_files|length }}</div>
+      <div>Recent Submissions: 
+        {% for pdf in pdf_files[:5] %}
+          {{ pdf }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </div>
+      <div>
+        <button class="btn" id="downloadAllBtn">Download All PDFs</button>
+        <button class="btn" id="exportCsvBtn">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <input type="text" id="searchInput" placeholder="Search filenames..." style="width:100%;padding:6px;margin-bottom:10px;border-radius:6px;border:1px solid #ccc">
 
     {% if pdf_files %}
-      <table>
-        <tr>
-          <th>Filename</th>
-          <th>Download</th>
-          <th>Remove</th>
-        </tr>
-        {% for pdf in pdf_files %}
-        <tr>
-          <td>{{ pdf }}</td>
-          <td>
-            <a class="btn" href="{{ url_for('admin_download', filename=pdf) }}">Download</a>
-          </td>
-          <td>
-            <form method="post" action="{{ url_for('admin_remove', filename=pdf) }}" onsubmit="return confirm('Are you sure you want to remove this form?');">
-              <button class="btn remove-btn" type="submit">Remove</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
+      <form method="post" action="{{ url_for('admin_remove_selected') }}" id="multiDeleteForm">
+        <table id="pdfTable">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAll"></th>
+              <th>Filename</th>
+              <th>Download</th>
+              <th>Preview</th>
+              <th>Remove</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for pdf in pdf_files %}
+            <tr class="{% if loop.index <=5 %}recent-row{% endif %}">
+              <td><input type="checkbox" name="selected_files" value="{{ pdf }}"></td>
+              <td>{{ pdf }}</td>
+              <td>
+                <a class="btn" href="{{ url_for('admin_download', filename=pdf) }}">Download</a>
+              </td>
+              <td>
+                <a class="btn" href="{{ url_for('admin_download', filename=pdf) }}" target="_blank">Preview</a>
+              </td>
+              <td>
+                <form method="post" action="{{ url_for('admin_remove', filename=pdf) }}" onsubmit="return confirm('Are you sure you want to remove this form?');">
+                  <button class="btn remove-btn" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <button class="btn remove-btn" type="submit" style="margin-top:10px" onclick="return confirm('Are you sure you want to remove selected forms?');">Remove Selected</button>
+      </form>
     {% else %}
       <p class="no-data">No submissions yet.</p>
     {% endif %}
   </div>
+
+  <!-- JS Libraries -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  
+  <script>
+    // Initialize DataTable for pagination & sorting
+    $(document).ready(function() {
+      $('#pdfTable').DataTable({
+        "paging": true,
+        "info": false,
+        "lengthChange": false
+      });
+    });
+
+    // Search/filter table
+    $('#searchInput').on('keyup', function() {
+      var value = $(this).val().toLowerCase();
+      $('#pdfTable tbody tr').filter(function() {
+        $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+      });
+    });
+
+    // Select all checkboxes
+    $('#selectAll').click(function(){
+      $('input[name="selected_files"]').prop('checked', this.checked);
+    });
+
+    // Export CSV
+    $('#exportCsvBtn').click(function(){
+      let csv = "Filename,Download,Preview\n";
+      $('#pdfTable tbody tr').each(function(){
+        let filename = $(this).find('td:nth-child(2)').text().trim();
+        csv += `"${filename}","Download link","Preview link"\n`;
+      });
+      let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      let link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", "submissions.csv");
+      link.click();
+    });
+
+    // Download All PDFs button
+    $('#downloadAllBtn').click(function(){
+      window.location.href = "{{ url_for('admin_download_all') }}";
+    });
+  </script>
 </body>
 </html>
