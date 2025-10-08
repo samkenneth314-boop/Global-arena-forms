@@ -61,6 +61,16 @@
 
     <hr>
 
+    <!-- ✅ Added Official Use Section -->
+    <div class="info">
+      <h4>FOR OFFICIAL USE</h4>
+      <p><strong>Name:</strong> {{ data.official_name }}</p>
+      <p><strong>Position:</strong> {{ data.official_position }}</p>
+      <p><strong>Date:</strong> {{ data.official_date }}</p>
+    </div>
+
+    <hr>
+
     <div class="actions">
       <form method="post" action="{{ url_for('edit') }}">
         {% for k,v in data.items() %}

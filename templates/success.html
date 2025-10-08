@@ -28,5 +28,21 @@
 
     <a id="downloadLink" class="dl-btn" href="{{ url_for('download', filename=pdf_filename) }}">Download PDF</a>
   </div>
+
+  <script>
+    // ✅ Automatically redirect to the form after clicking "Download PDF"
+    document.getElementById('downloadLink').addEventListener('click', function() {
+      setTimeout(function() {
+        window.location.href = "{{ url_for('index') }}";  // Redirect back to the form page
+      }, 3000); // 3-second delay after clicking download
+    });
+
+    // ✅ If user refreshes the page, redirect back to form
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        window.location.href = "{{ url_for('index') }}";
+      }
+    });
+  </script>
 </body>
 </html>
