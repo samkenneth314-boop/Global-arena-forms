@@ -211,6 +211,7 @@ def temp_images(filename):
     return send_from_directory(TEMP_DIR, filename)
 
 # ---------- Admin Routes ----------
+
 @app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
     if request.method == 'POST':
@@ -218,11 +219,20 @@ def admin_login():
         password = request.form.get('password','')
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_dashboard'))  # Redirect to /admin after login
         else:
             flash('Invalid username or password', 'danger')
             return redirect(url_for('admin_login'))
     return render_template('admin_login.html')
+
+
+@app.route('/admin')  # Fixed route to /admin for dashboard
+def admin_dashboard():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    pdf_files = sorted(os.listdir(PDF_DIR), reverse=True)
+    return render_template('admin_dashboard.html', pdf_files=pdf_files, church_name=CHURCH_NAME)
+
 
 @app.route('/admin/remove/<path:filename>', methods=['POST'])
 def admin_remove(filename):
@@ -242,23 +252,18 @@ def admin_remove(filename):
     return redirect(url_for('admin_dashboard'))
 
 
-@app.route('/admin/dashboard')
-def admin_dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    pdf_files = sorted(os.listdir(PDF_DIR), reverse=True)
-    return render_template('admin_dashboard.html', pdf_files=pdf_files)
-
 @app.route('/admin/download/<path:filename>')
 def admin_download(filename):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     return send_from_directory(PDF_DIR, filename, as_attachment=True)
 
+
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
+
 
 # ---------- Run ----------
 if __name__ == '__main__':
