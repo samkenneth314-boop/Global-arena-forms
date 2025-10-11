@@ -130,7 +130,7 @@ def create_pdf(data: dict, temp_photo_filename: str) -> str:
     return pdf_filename
 
 # ---------- Form Routes ----------
-@app.route('/', methods=['GET'])
+@app.route('/form', methods=['GET'])
 def form():
     # ADDED official fields to pre so edit retains them
     pre = {k: request.args.get(k, '') for k in (
@@ -152,6 +152,10 @@ def preview():
         temp_photo = save_temp_photo(file_photo)
     else:
         temp_photo = existing_temp if existing_temp else None
+
+@app.route('/')
+def welcome():
+    return render_template('welcome.html')
 
     # Get form data (ADDED official_* fields)
     data = {k: request.form.get(k,'').strip() for k in (

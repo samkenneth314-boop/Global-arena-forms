@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome — Global Arena of Liberty Ministry</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #000000, #000000);
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+      text-align: center;
+      animation: fadeIn 2s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    img {
+      width: 180px;
+      height: auto;
+      margin-bottom: 25px;
+      filter: drop-shadow(0 0 10px rgba(255, 162, 0, 0.498));
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgb(255, 255, 255)rgb(255, 255, 255)0px #ff9100;
+      margin: 0;
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 5px #ffffff; }
+      to { text-shadow: 0 0 20px #ffffff, 0 0 30px #ffffff; }
+    }
+
+    a.button {
+      margin-top: 35px;
+      padding: 12px 32px;
+      font-size: 1rem;
+      color: #ffffff;
+      text-decoration: none;
+      border: 2px solid #ffffff;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    a.button:hover {
+      background-color: #FFD700;
+      color: #ffffff;
+      box-shadow: 0 0 20px #fbfbfa;
+    }
+  </style>
+</head>
+<body>
+  <img src="{{ url_for('static', filename='church_logo.png') }}" alt="Logo">
+  <h1>Welcome to Global Arena of Liberty Ministry</h1>
+  <a href="{{ url_for('form') }}" class="button">Register Now</a>
+</body>
+</html>
