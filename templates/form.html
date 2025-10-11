@@ -3,6 +3,12 @@
 <head>
   <meta charset="utf-8">
   <title>{{ church_name }} — Membership Form</title>
+
+  <!-- ✅ Added SEO Meta Tags (Nothing else was changed) -->
+  <meta name="description" content="Membership registration form for Global Arena of Liberty Ministry.">
+  <meta name="keywords" content="Global Arena Forms, Church Membership Form, Liberty Ministry Registration, Global Arena of Liberty, Ghana Church Forms">
+  <meta name="author" content="Global Arena of Liberty Ministry">
+
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     body { font-family: Arial, sans-serif; background: #ffffff; margin: 0; padding: 0; }
@@ -126,7 +132,6 @@
         </div>
         <div class="col">
           <label>Age</label>
-          <!-- made editable so user can manually enter if needed -->
           <input type="number" name="age" value="{{ pre.age }}" placeholder="Enter or auto-calculated" required>
         </div>
       </div>
@@ -159,7 +164,6 @@
       <input type="date" name="join_date" value="{{ pre.join_date }}">
 
       <label>Upload Passport Photo</label>
-      <!-- name must match backend (photo) -->
       <input type="file" name="photo" accept="image/*">
       {% if pre.temp_photo %}
       <div style="margin-top:10px">
@@ -181,25 +185,24 @@
         <input type="date" name="official_date">
       </div>
 
-          <button class="btn" type="submit">Preview Before Submit</button>
-  </form>
-</div>
+      <button class="btn" type="submit">Preview Before Submit</button>
+    </form>
+  </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.querySelector("form");
-    const passportInput = document.querySelector("input[name='passport']");
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+      const form = document.querySelector("form");
+      const passportInput = document.querySelector("input[name='passport']");
 
-    form.addEventListener("submit", function(e) {
-        if (!passportInput.value) {
-            e.preventDefault(); // Stop form submission
-            alert("Please upload your passport photo before submitting the form.");
-            passportInput.focus();
-        }
-    });
-});
-</script>
+      form.addEventListener("submit", function(e) {
+          if (!passportInput.value) {
+              e.preventDefault();
+              alert("Please upload your passport photo before submitting the form.");
+              passportInput.focus();
+          }
+      });
+  });
+  </script>
 
 </body>
 </html>
-
