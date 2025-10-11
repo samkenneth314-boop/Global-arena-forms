@@ -153,11 +153,7 @@ def preview():
     else:
         temp_photo = existing_temp if existing_temp else None
 
-@app.route('/')
-def welcome():
-    return render_template('welcome.html')
-
-    # Get form data (ADDED official_* fields)
+    # Get form data
     data = {k: request.form.get(k,'').strip() for k in (
         'first_name','last_name','gender','dob','age','email','phone','address','born_again',
         'marital_status','residence','landmark','home_town','region','occupation',
@@ -174,9 +170,16 @@ def welcome():
         except Exception:
             data['age'] = ''
 
+    # RETURN the preview template
     return render_template('preview.html', data=data, temp_photo=temp_photo,
                            church_name=CHURCH_NAME, church_address=CHURCH_ADDRESS,
                            church_website=CHURCH_WEBSITE, church_phone=CHURCH_PHONE)
+
+
+@app.route('/')
+def welcome():
+    return render_template('welcome.html')
+
 
 @app.route('/edit', methods=['POST'])
 def edit():
@@ -205,7 +208,6 @@ def submit():
             os.remove(os.path.join(TEMP_DIR, temp_photo))
         except Exception:
             pass
-
     return render_template('success.html', pdf_filename=pdf_filename,
                            church_name=CHURCH_NAME, church_address=CHURCH_ADDRESS,
                            church_website=CHURCH_WEBSITE, church_phone=CHURCH_PHONE)
