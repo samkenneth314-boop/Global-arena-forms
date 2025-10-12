@@ -175,6 +175,9 @@ def preview():
                            church_name=CHURCH_NAME, church_address=CHURCH_ADDRESS,
                            church_website=CHURCH_WEBSITE, church_phone=CHURCH_PHONE)
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('.', 'sitemap.xml')
 
 @app.route('/')
 def welcome():
