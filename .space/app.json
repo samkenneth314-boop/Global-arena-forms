@@ -1,0 +1,6 @@
+{
+  "name": "church-form-app",
+  "engine": "python3.9",
+  "src": ".",
+  "run": "python app.py"
+}
